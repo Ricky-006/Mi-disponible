@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Mi disponible</title>
+
+<!-- iOS: makes "Add to Home Screen" open full-screen, without Safari's UI -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Disponible" />
+<meta name="theme-color" content="#F2EEE3" />
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#F2EEE3; --paper-line:#D9D1BC; --card-bg:#FBF9F3;
+  --ink:#232B36; --ink-soft:#6B6455;
+  --red:#9B3B2E; --green:#3F6B4F; --gold:#A9822F;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--paper); color:var(--ink); font-family:Inter, sans-serif;}
+body{
+  padding-top:max(24px, env(safe-area-inset-top));
+  padding-bottom:max(24px, env(safe-area-inset-bottom));
+  padding-left:max(16px, env(safe-area-inset-left));
+  padding-right:max(16px, env(safe-area-inset-right));
+  min-height:100vh;
+}
+.wrap{max-width:640px; margin:0 auto;}
+.icon{display:inline-block; vertical-align:middle;}
+.icon svg{display:block;}
+
+/* header */
+.header{display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;}
+.eyebrow{font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); font-weight:500; margin:0 0 4px;}
+h1{font-family:'Fraunces',serif; font-weight:700; font-size:30px; margin:0; line-height:1;}
+
+/* hero */
+.hero{display:flex; flex-direction:column; align-items:center; padding:28px 0 36px;}
+.stamp{
+  width:220px; height:220px; border-radius:999px; border:2px dashed var(--green);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transform:rotate(-3deg); color:var(--green); text-align:center; padding:0 12px;
+}
+.stamp.neg{border-color:var(--red); color:var(--red);}
+.stamp .label{font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; margin-bottom:4px;}
+.stamp .amount{font-family:'Fraunces',serif; font-weight:700; font-size:36px;}
+.stamp .date{font-family:'JetBrains Mono',monospace; font-size:10px; margin-top:6px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft);}
+.hero-note{margin-top:18px; font-size:13px; text-align:center; max-width:340px; color:var(--ink-soft);}
+.hero-note b{font-weight:600;}
+
+/* ledger cards */
+.ledgers{display:flex; flex-direction:column; gap:16px;}
+.card{background:var(--card-bg); border:1px solid var(--paper-line); border-radius:2px;}
+.card-head{display:flex; align-items:center; gap:10px; padding:16px 18px 12px; border-bottom:1px solid var(--paper-line);}
+.card-head .badge{width:32px; height:32px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.card-head .eyebrow{margin-bottom:1px;}
+.card-head h3{font-family:'Fraunces',serif; font-weight:600; font-size:16px; margin:0; line-height:1.2;}
+
+.rows{padding:4px 18px;}
+.empty{font-size:13px; font-style:italic; color:var(--ink-soft); text-align:center; padding:16px 0;}
+
+.row{display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px dotted var(--paper-line);}
+.row .name{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.row .name.paid, .row .amt.paid{color:var(--ink-soft); text-decoration:line-through;}
+.row .fill{flex:1; border-bottom:1px dotted var(--paper-line); margin-bottom:4px;}
+.row .amt{font-family:'JetBrains Mono',monospace; font-size:14px; white-space:nowrap;}
+.row .mult{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft); white-space:nowrap;}
+.row button.icon-btn{background:none; border:none; padding:2px; color:var(--ink-soft); flex-shrink:0;}
+.row button.icon-btn.danger{color:var(--red);}
+.row .paid-toggle{flex-shrink:0; background:none; border:none; padding:0; display:flex;}
+
+/* edit row */
+.edit-row{display:flex; align-items:flex-end; gap:8px; padding:10px 8px; margin:4px -8px; background:#00000006; border:1px solid var(--paper-line); border-radius:2px;}
+.field{display:flex; flex-direction:column;}
+.field.grow{flex:1; min-width:0;}
+.field label{font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px;}
+.field input{background:#fff; border:1px solid var(--paper-line); border-radius:2px; padding:6px 8px; font-size:14px; color:var(--ink); width:100%; font-family:Inter, sans-serif;}
+.field input.mono{font-family:'JetBrains Mono',monospace; text-align:right;}
+.field.amt input{width:74px;}
+.field.mult input{width:48px;}
+.edit-actions{display:flex; gap:6px; padding-bottom:2px;}
+.round-btn{width:24px; height:24px; border-radius:999px; border:none; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;}
+
+/* add form */
+.add-form{display:flex; align-items:center; gap:8px; padding:12px 18px; border-top:1px solid var(--paper-line); background:#00000004;}
+.add-form input{background:transparent; border:none; font-size:13px; color:var(--ink); outline:none; padding:4px 2px; font-family:Inter, sans-serif;}
+.add-form input.name{flex:1; min-width:0;}
+.add-form input.amt{width:76px; text-align:right; font-family:'JetBrains Mono',monospace;}
+.add-form input.mult{width:40px; text-align:right; font-family:'JetBrains Mono',monospace;}
+.add-form .x{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft);}
+.add-form button{width:28px; height:28px; border-radius:999px; border:none; color:var(--paper); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+.subtotal{display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-top:1px solid var(--paper-line);}
+.subtotal .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);}
+.subtotal .val{font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:500;}
+
+/* summary strip */
+.summary{margin-top:18px; background:var(--card-bg); border:1px solid var(--paper-line); border-radius:2px; padding:16px 18px; display:flex; flex-wrap:wrap; gap:16px 28px;}
+.summary .item .lbl{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 2px;}
+.summary .item .val{font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:500; margin:0;}
+
+.install-hint{margin-top:22px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const STORAGE_KEY = "mi-disponible-v1";
+const ICONS = {
+  plus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+  pencil: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+  check: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  x: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  circle: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>',
+  checkCircle: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  landmark: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>',
+  scroll: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8a2 2 0 0 0 2-2V9.5L14.5 4H8a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M14 4v5h5"/></svg>',
+  coin: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M15.5 9.5c0-1.7-1.6-2.5-3.5-2.5s-3.5.9-3.5 2.5c0 1.6 1.6 2 3.5 2.5s3.5 1 3.5 2.5-1.6 2.5-3.5 2.5-3.5-.9-3.5-2.5"/></svg>',
+};
+
+const SECTIONS = {
+  incomes: { label: "Cuentas e ingresos", eyebrow: "Entradas", accent: "var(--green)", accentRaw:"#3F6B4F", placeholder: "Ej: ITAU, sueldo...", icon: ICONS.landmark, showPaid:false, showMultiplier:false },
+  fixedExp: { label: "Gastos fijos", eyebrow: "Planeados", accent: "var(--red)", accentRaw:"#9B3B2E", placeholder: "Ej: Alquiler, comida...", icon: ICONS.scroll, showPaid:true, showMultiplier:true },
+  varExp: { label: "Gastos variables", eyebrow: "Estimados", accent: "var(--gold)", accentRaw:"#A9822F", placeholder: "Ej: Salidas, ropa...", icon: ICONS.coin, showPaid:true, showMultiplier:true },
+};
+
+let state = { incomes: [], fixedExp: [], varExp: [] };
+let editing = null; // { section, id }
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state.incomes = parsed.incomes || [];
+      state.fixedExp = parsed.fixedExp || [];
+      state.varExp = parsed.varExp || [];
+    }
+  }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function fmt(n){ return "$" + new Intl.NumberFormat("es-UY", {maximumFractionDigits:2}).format(Math.abs(n)); }
+function effective(r){ return r.amount * (r.multiplier && r.multiplier > 0 ? r.multiplier : 1); }
+
+function addEntry(section){
+  const cfg = SECTIONS[section];
+  const nameEl = document.getElementById(`add-name-${section}`);
+  const amtEl = document.getElementById(`add-amt-${section}`);
+  const multEl = cfg.showMultiplier ? document.getElementById(`add-mult-${section}`) : null;
+  const name = nameEl.value.trim();
+  const val = parseFloat(amtEl.value);
+  if(!name || isNaN(val) || val <= 0) return;
+  const mult = multEl ? parseFloat(multEl.value) : NaN;
+  state[section].push({ id: uid(), name, amount: val, multiplier: (!isNaN(mult) && mult > 0) ? mult : 1, paid:false });
+  save(); render();
+}
+function removeEntry(section, id){
+  state[section] = state[section].filter(r => r.id !== id);
+  save(); render();
+}
+function togglePaid(section, id){
+  state[section] = state[section].map(r => r.id === id ? {...r, paid: !r.paid} : r);
+  save(); render();
+}
+function startEdit(section, id){ editing = {section, id}; render(); }
+function cancelEdit(){ editing = null; render(); }
+function saveEdit(){
+  const { section, id } = editing;
+  const cfg = SECTIONS[section];
+  const name = document.getElementById("edit-name").value.trim();
+  const val = parseFloat(document.getElementById("edit-amt").value);
+  const multEl = cfg.showMultiplier ? document.getElementById("edit-mult") : null;
+  if(!name || isNaN(val) || val <= 0) return;
+  const mult = multEl ? parseFloat(multEl.value) : NaN;
+  state[section] = state[section].map(r => r.id === id ? { ...r, name, amount: val, multiplier: (!isNaN(mult) && mult > 0) ? mult : 1 } : r);
+  editing = null; save(); render();
+}
+
+function rowHtml(section, r, cfg){
+  if(editing && editing.section === section && editing.id === r.id){
+    return `
+    <div class="edit-row">
+      <div class="field grow"><label>Nombre</label><input id="edit-name" value="${escapeHtml(r.name)}" /></div>
+      <div class="field amt"><label>Monto</label><input id="edit-amt" class="mono" type="number" step="0.01" value="${r.amount}" /></div>
+      ${cfg.showMultiplier ? `<div class="field mult"><label>×</label><input id="edit-mult" class="mono" type="number" step="1" min="0" value="${r.multiplier || 1}" /></div>` : ""}
+      <div class="edit-actions">
+        <button class="round-btn" style="background:var(--green)" onclick="saveEdit()">${ICONS.check}</button>
+        <button class="round-btn" style="background:var(--ink-soft)" onclick="cancelEdit()">${ICONS.x}</button>
+      </div>
+    </div>`;
+  }
+  const paidCls = r.paid ? "paid" : "";
+  return `
+  <div class="row">
+    ${cfg.showPaid ? `<button class="paid-toggle" style="color:${r.paid ? cfg.accentRaw : "var(--ink-soft)"}" onclick="togglePaid('${section}','${r.id}')">${r.paid ? ICONS.checkCircle : ICONS.circle}</button>` : ""}
+    <span class="name ${paidCls}" ${cfg.showPaid ? `onclick="togglePaid('${section}','${r.id}')" style="cursor:pointer"` : ""}>${escapeHtml(r.name)}</span>
+    <span class="fill"></span>
+    <span class="amt ${paidCls}">${fmt(r.amount)}${(cfg.showMultiplier && r.multiplier > 1) ? ` <span style="color:${r.paid ? "var(--ink-soft)" : cfg.accentRaw}">×${r.multiplier}</span>` : ""}</span>
+    ${(cfg.showMultiplier && r.multiplier > 1) ? `<span class="mult">= ${fmt(effective(r))}</span>` : ""}
+    <button class="icon-btn" onclick="startEdit('${section}','${r.id}')">${ICONS.pencil}</button>
+    <button class="icon-btn danger" onclick="removeEntry('${section}','${r.id}')">${ICONS.trash}</button>
+  </div>`;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function sectionHtml(section){
+  const cfg = SECTIONS[section];
+  const rows = state[section];
+  const total = rows.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const pendingCount = rows.filter(r => r.paid).length;
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div class="badge" style="background:${cfg.accentRaw}1a; color:${cfg.accentRaw}">${cfg.icon}</div>
+      <div>
+        <p class="eyebrow" style="color:var(--ink-soft); font-weight:400;">${cfg.eyebrow}</p>
+        <h3>${cfg.label}</h3>
+      </div>
+    </div>
+    <div class="rows">
+      ${rows.length === 0 ? `<p class="empty">Sin registros todavía.</p>` : rows.map(r => rowHtml(section, r, cfg)).join("")}
+    </div>
+    <div class="add-form">
+      <input class="name" id="add-name-${section}" placeholder="${cfg.placeholder}" onkeydown="if(event.key==='Enter')addEntry('${section}')" />
+      <input class="amt" id="add-amt-${section}" placeholder="0" type="number" step="0.01" onkeydown="if(event.key==='Enter')addEntry('${section}')" />
+      ${cfg.showMultiplier ? `<span class="x">×</span><input class="mult" id="add-mult-${section}" placeholder="1" type="number" step="1" min="0" onkeydown="if(event.key==='Enter')addEntry('${section}')" />` : ""}
+      <button style="background:${cfg.accentRaw}" onclick="addEntry('${section}')">${ICONS.plus}</button>
+    </div>
+    <div class="subtotal">
+      <span class="lbl">${pendingCount > 0 ? `Pendiente (${pendingCount} pagado${pendingCount>1?"s":""})` : "Subtotal"}</span>
+      <span class="val" style="color:${cfg.accentRaw}">${fmt(total)}</span>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const totalIncome = state.incomes.reduce((s,r) => s + r.amount, 0);
+  const totalFixed = state.fixedExp.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const totalVar = state.varExp.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const afterFixed = totalIncome - totalFixed;
+  const afterAll = afterFixed - totalVar;
+  const today = new Intl.DateTimeFormat("es-UY", {day:"2-digit", month:"short", year:"numeric"}).format(new Date());
+  const neg = afterFixed < 0;
+
+  document.getElementById("app").innerHTML = `
+    <div class="header">
+      <div>
+        <p class="eyebrow">Libro de cuentas personal</p>
+        <h1>Mi disponible</h1>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="stamp ${neg ? "neg" : ""}">
+        <span class="label">Disponible tras gastos fijos</span>
+        <span class="amount">${neg ? "−" : ""}${fmt(afterFixed)}</span>
+        <span class="date">${today}</span>
+      </div>
+      <p class="hero-note">
+        ${fmt(totalIncome)} en cuentas − ${fmt(totalFixed)} en gastos fijos
+        ${totalVar > 0 ? ` · quedarían <b style="color:${afterAll>=0?"var(--green)":"var(--red)"}">${afterAll<0?"−":""}${fmt(afterAll)}</b> si sumás los gastos variables` : ""}
+      </p>
+    </div>
+
+    <div class="ledgers">
+      ${sectionHtml("incomes")}
+      ${sectionHtml("fixedExp")}
+      ${sectionHtml("varExp")}
+    </div>
+
+    <div class="summary">
+      <div class="item"><p class="lbl">Total ingresos</p><p class="val" style="color:var(--green)">${fmt(totalIncome)}</p></div>
+      <div class="item"><p class="lbl">Gastos fijos</p><p class="val" style="color:var(--red)">${fmt(totalFixed)}</p></div>
+      <div class="item"><p class="lbl">Gastos variables</p><p class="val" style="color:var(--gold)">${fmt(totalVar)}</p></div>
+      <div class="item"><p class="lbl">Disponible tras fijos</p><p class="val" style="color:${afterFixed>=0?"var(--green)":"var(--red)"}">${afterFixed<0?"−":""}${fmt(afterFixed)}</p></div>
+      <div class="item"><p class="lbl">Disponible tras todo</p><p class="val" style="color:${afterAll>=0?"var(--green)":"var(--red)"}">${afterAll<0?"−":""}${fmt(afterAll)}</p></div>
+    </div>
+
+    <p class="install-hint">Tocá el botón compartir de Safari y elegí "Agregar a pantalla de inicio" para tenerla como app.</p>
+  `;
+}
+
+load();
+render();
+</script>
+</body>
+</html>
