@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Mi disponible</title>
+
+<!-- iOS: makes "Add to Home Screen" open full-screen, without Safari's UI -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Disponible" />
+<meta name="theme-color" content="#F2EEE3" />
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#F2EEE3; --paper-line:#D9D1BC; --card-bg:#FBF9F3;
+  --ink:#232B36; --ink-soft:#6B6455;
+  --red:#9B3B2E; --green:#3F6B4F; --gold:#A9822F;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--paper); color:var(--ink); font-family:Inter, sans-serif;}
+body{
+  padding-top:max(24px, env(safe-area-inset-top));
+  padding-bottom:max(24px, env(safe-area-inset-bottom));
+  padding-left:max(16px, env(safe-area-inset-left));
+  padding-right:max(16px, env(safe-area-inset-right));
+  min-height:100vh;
+}
+.wrap{max-width:640px; margin:0 auto;}
+.icon{display:inline-block; vertical-align:middle;}
+.icon svg{display:block;}
+
+/* header */
+.header{display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;}
+.eyebrow{font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); font-weight:500; margin:0 0 4px;}
+h1{font-family:'Fraunces',serif; font-weight:700; font-size:30px; margin:0; line-height:1;}
+
+/* hero */
+.hero{display:flex; flex-direction:column; align-items:center; padding:28px 0 36px;}
+.stamp{
+  width:220px; height:220px; border-radius:999px; border:2px dashed var(--green);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transform:rotate(-3deg); color:var(--green); text-align:center; padding:0 12px;
+}
+.stamp.neg{border-color:var(--red); color:var(--red);}
+.stamp .label{font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; margin-bottom:4px;}
+.stamp .amount{font-family:'Fraunces',serif; font-weight:700; font-size:36px;}
+.stamp .date{font-family:'JetBrains Mono',monospace; font-size:10px; margin-top:6px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft);}
+.hero-note{margin-top:18px; font-size:13px; text-align:center; max-width:340px; color:var(--ink-soft);}
+.hero-note b{font-weight:600;}
+
+/* ledger cards */
+.ledgers{display:flex; flex-direction:column; gap:16px;}
+.card{background:var(--card-bg); border:1px solid var(--paper-line); border-radius:2px;}
+.card-head{display:flex; align-items:center; gap:10px; padding:16px 18px 12px; border-bottom:1px solid var(--paper-line);}
+.card-head .badge{width:32px; height:32px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.card-head .eyebrow{margin-bottom:1px;}
+.card-head h3{font-family:'Fraunces',serif; font-weight:600; font-size:16px; margin:0; line-height:1.2;}
+
+.rows{padding:4px 18px;}
+.empty{font-size:13px; font-style:italic; color:var(--ink-soft); text-align:center; padding:16px 0;}
+
+.row{display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px dotted var(--paper-line);}
+.row .name{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.row .name.paid, .row .amt.paid{color:var(--ink-soft); text-decoration:line-through;}
+.row .fill{flex:1; border-bottom:1px dotted var(--paper-line); margin-bottom:4px;}
+.row .amt{font-family:'JetBrains Mono',monospace; font-size:14px; white-space:nowrap;}
+.row .mult{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft); white-space:nowrap;}
+.row button.icon-btn{background:none; border:none; padding:2px; color:var(--ink-soft); flex-shrink:0;}
+.row button.icon-btn.danger{color:var(--red);}
+.row .paid-toggle{flex-shrink:0; background:none; border:none; padding:0; display:flex;}
+
+/* edit row */
+.edit-row{display:flex; align-items:flex-end; gap:8px; padding:10px 8px; margin:4px -8px; background:#00000006; border:1px solid var(--paper-line); border-radius:2px;}
+.field{display:flex; flex-direction:column;}
+.field.grow{flex:1; min-width:0;}
+.field label{font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px;}
+.field input{background:#fff; border:1px solid var(--paper-line); border-radius:2px; padding:6px 8px; font-size:14px; color:var(--ink); width:100%; font-family:Inter, sans-serif;}
+.field input.mono{font-family:'JetBrains Mono',monospace; text-align:right;}
+.field.amt input{width:74px;}
+.field.mult input{width:48px;}
+.edit-actions{display:flex; gap:6px; padding-bottom:2px;}
+.round-btn{width:24px; height:24px; border-radius:999px; border:none; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;}
+
+/* add form */
+.add-form{display:flex; align-items:center; gap:8px; padding:12px 18px; border-top:1px solid var(--paper-line); background:#00000004;}
+.add-form input{background:transparent; border:none; font-size:13px; color:var(--ink); outline:none; padding:4px 2px; font-family:Inter, sans-serif;}
+.add-form input.name{flex:1; min-width:0;}
+.add-form input.amt{width:76px; text-align:right; font-family:'JetBrains Mono',monospace;}
+.add-form input.mult{width:40px; text-align:right; font-family:'JetBrains Mono',monospace;}
+.add-form .x{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft);}
+.add-form button{width:28px; height:28px; border-radius:999px; border:none; color:var(--paper); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+.subtotal{display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-top:1px solid var(--paper-line);}
+.subtotal .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);}
+.subtotal .val{font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:500;}
+
+/* summary strip */
+.summary{margin-top:18px; background:var(--card-bg); border:1px solid var(--paper-line); border-radius:2px; padding:16px 18px; display:flex; flex-wrap:wrap; gap:16px 28px;}
+.summary .item .lbl{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 2px;}
+.summary .item .val{font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:500; margin:0;}
+
+.install-hint{margin-top:22px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5;}
+
+/* menu (home screen) */
+.menu{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;}
+.menu-btn{
+  background:var(--card-bg); border:1px solid var(--paper-line); border-radius:2px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:10px;
+  padding:18px 16px; text-align:left; cursor:pointer; font-family:Inter, sans-serif;
+}
+.menu-btn .badge{width:34px; height:34px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.menu-btn .menu-label{font-family:'Fraunces',serif; font-weight:600; font-size:15px; color:var(--ink); line-height:1.2;}
+.menu-btn .menu-sub{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft); margin-top:2px;}
+
+/* back nav */
+.back-row{display:flex; align-items:center; margin-bottom:18px;}
+.back-btn{
+  display:flex; align-items:center; gap:6px; background:none; border:none; padding:6px 0;
+  color:var(--ink-soft); font-family:Inter, sans-serif; font-size:13px; cursor:pointer;
+}
+.back-btn svg{display:block;}
+
+/* floating quick-add button (widget-style) */
+.fab{
+  position:fixed; right:max(20px, env(safe-area-inset-right)); bottom:max(24px, env(safe-area-inset-bottom));
+  width:58px; height:58px; border-radius:999px; border:none; cursor:pointer; z-index:40;
+  background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 20px #00000030, 0 2px 6px #00000020;
+}
+.fab svg{display:block;}
+
+/* quick-add sheet */
+.qa-overlay{
+  position:fixed; inset:0; background:#1c1a1266; backdrop-filter:blur(2px); z-index:50;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.qa-sheet{
+  width:100%; max-width:640px; background:var(--card-bg); border-radius:18px 18px 0 0;
+  border:1px solid var(--paper-line); border-bottom:none;
+  padding:14px 20px max(20px, env(safe-area-inset-bottom));
+  max-height:86vh; overflow-y:auto;
+  animation:qa-up .18s ease-out;
+}
+@keyframes qa-up{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+.qa-grabber{width:36px; height:4px; border-radius:999px; background:var(--paper-line); margin:2px auto 14px;}
+.qa-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+.qa-head-left{display:flex; align-items:center; gap:8px;}
+.qa-back{background:none; border:none; color:var(--ink-soft); padding:4px; display:flex;}
+.qa-title{font-family:'Fraunces',serif; font-weight:600; font-size:17px; margin:0;}
+.qa-close{background:none; border:none; color:var(--ink-soft); padding:4px; display:flex;}
+.qa-dots{display:flex; gap:5px; justify-content:center; margin-bottom:18px;}
+.qa-dot{width:6px; height:6px; border-radius:999px; background:var(--paper-line);}
+.qa-dot.active{background:var(--ink-soft);}
+
+.qa-choice-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.qa-choice-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.qa-choice{
+  background:#fff; border:1px solid var(--paper-line); border-radius:10px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  padding:18px 10px; font-family:Inter, sans-serif; font-size:13.5px; font-weight:500; color:var(--ink);
+}
+.qa-choice .badge{width:36px; height:36px; border-radius:999px; display:flex; align-items:center; justify-content:center;}
+
+.qa-field{margin-bottom:16px;}
+.qa-field label{display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px;}
+.qa-field input{
+  width:100%; background:#fff; border:1px solid var(--paper-line); border-radius:8px; padding:12px 12px;
+  font-size:16px; color:var(--ink); font-family:Inter, sans-serif;
+}
+.qa-field input.mono{font-family:'JetBrains Mono',monospace;}
+.qa-primary{
+  width:100%; border:none; border-radius:8px; padding:14px; font-size:15px; font-weight:600;
+  color:var(--paper); background:var(--ink); cursor:pointer; font-family:Inter, sans-serif;
+}
+.qa-primary:disabled{opacity:.4;}
+.qa-summary{background:#fff; border:1px solid var(--paper-line); border-radius:10px; padding:14px 16px; margin-bottom:18px;}
+.qa-summary .row2{display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-bottom:1px dotted var(--paper-line);}
+.qa-summary .row2:last-child{border-bottom:none;}
+.qa-summary .row2 .k{color:var(--ink-soft);}
+.qa-summary .row2 .v{font-family:'JetBrains Mono',monospace; font-weight:500;}
+
+/* drag & drop (mover ahorro mensual -> total) */
+.drag-handle{display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0; padding:4px 2px; touch-action:none; cursor:grab;}
+.row.is-dragging{opacity:.3;}
+.drag-ghost{
+  position:fixed; z-index:200; pointer-events:none; left:0; top:0;
+  background:var(--card-bg); border:1px solid var(--paper-line); border-radius:8px;
+  padding:8px 14px; box-shadow:0 10px 26px #00000038, 0 2px 8px #00000022;
+  font-family:Inter, sans-serif; font-size:13.5px; color:var(--ink); display:flex; align-items:center; gap:8px;
+  transform:translate(-50%,-50%) scale(1.03); white-space:nowrap;
+}
+.drag-ghost .amt{font-family:'JetBrains Mono',monospace; color:var(--ink-soft); font-size:12.5px;}
+.drop-zone{transition:background .12s ease, box-shadow .12s ease; border-radius:2px;}
+.drop-zone.drop-hover{background:#3F6B4F14; box-shadow:0 0 0 2px var(--green) inset;}
+.drop-hint{font-size:11px; color:var(--ink-soft); text-align:center; padding:8px 18px 2px; font-style:italic;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const STORAGE_KEY = "mi-disponible-v1";
+const ICONS = {
+  plus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+  pencil: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+  check: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  x: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  circle: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>',
+  checkCircle: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  landmark: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>',
+  scroll: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8a2 2 0 0 0 2-2V9.5L14.5 4H8a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M14 4v5h5"/></svg>',
+  coin: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M15.5 9.5c0-1.7-1.6-2.5-3.5-2.5s-3.5.9-3.5 2.5c0 1.6 1.6 2 3.5 2.5s3.5 1 3.5 2.5-1.6 2.5-3.5 2.5-3.5-.9-3.5-2.5"/></svg>',
+  trendUp: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+  chevronLeft: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  plusBig: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  piggyBank: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8.7 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></svg>',
+  grip: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
+};
+
+const ACCOUNTS = ["ITAU", "BBVA", "OCA", "PREX", "INVERSIÓN"];
+
+const SECTIONS = {
+  incomes: { label: "Cuentas e ingresos", eyebrow: "Entradas", accent: "var(--green)", accentRaw:"#3F6B4F", placeholder: "Ej: ITAU, sueldo...", icon: ICONS.landmark, showPaid:false, showMultiplier:false },
+  fixedExp: { label: "Gastos fijos", eyebrow: "Planeados", accent: "var(--red)", accentRaw:"#9B3B2E", placeholder: "Ej: Alquiler, comida...", icon: ICONS.scroll, showPaid:true, showMultiplier:true },
+  varExp: { label: "Gastos variables", eyebrow: "Estimados", accent: "var(--gold)", accentRaw:"#A9822F", placeholder: "Ej: Salidas, ropa...", icon: ICONS.coin, showPaid:true, showMultiplier:true },
+  savingsTotal: { label: "Ahorro total", eyebrow: "Acumulado", accent: "#1F6B57", accentRaw:"#1F6B57", placeholder: "Ej: Caja de ahorro, efectivo...", icon: ICONS.piggyBank, showPaid:false, showMultiplier:false },
+  savingsMonthly: { label: "Ahorro mensual", eyebrow: "Este mes", accent: "#3FA187", accentRaw:"#3FA187", placeholder: "Ej: Meta del mes...", icon: ICONS.piggyBank, showPaid:true, showMultiplier:false },
+};
+
+const INV_CFG = { label: "Inversiones", eyebrow: "Portafolio", accentRaw: "#3B5B8C", icon: ICONS.trendUp };
+const SAVINGS_CFG = { label: "Ahorro", eyebrow: "Ahorro", accentRaw: "#2E7D6B", icon: ICONS.piggyBank };
+
+let state = { incomes: [], fixedExp: [], varExp: [], investments: [], savingsTotal: [], savingsMonthly: [] };
+let editing = null; // { section, id }
+let investEditing = null; // id or null
+let view = "home"; // "home" | "incomes" | "fixedExp" | "varExp" | "investments" | "savings"
+
+function goTo(v){ view = v; editing = null; investEditing = null; window.scrollTo(0,0); render(); }
+function goHome(){ goTo("home"); }
+
+/* ---------- quick add (widget-style flow) ---------- */
+let qa = { open:false, step:"type", type:null, subtype:null, name:"", amount:"", account:null };
+
+function qaSteps(){
+  if(!qa.type) return ["type"];
+  if(qa.type === "gasto" || qa.type === "ahorro") return ["type","subtype","name","amount","account","confirm"];
+  return ["type","name","amount","account","confirm"];
+}
+function openQuickAdd(){
+  qa = { open:true, step:"type", type:null, subtype:null, name:"", amount:"", account:null };
+  render();
+}
+function closeQuickAdd(){ qa.open = false; render(); }
+function qaBack(){
+  const steps = qaSteps();
+  const idx = steps.indexOf(qa.step);
+  if(idx <= 0){ closeQuickAdd(); return; }
+  qa.step = steps[idx - 1];
+  render();
+}
+function qaFocus(){
+  setTimeout(() => { const el = document.getElementById("qa-input"); if(el){ el.focus(); } }, 30);
+}
+function qaSelectType(t){
+  qa.type = t;
+  qa.step = (t === "gasto" || t === "ahorro") ? "subtype" : "name";
+  render();
+  if(qa.step === "name") qaFocus();
+}
+function qaSelectSubtype(s){
+  qa.subtype = s;
+  qa.step = "name";
+  render();
+  qaFocus();
+}
+function qaNameNext(){
+  const el = document.getElementById("qa-input");
+  const val = el.value.trim();
+  if(!val) return;
+  qa.name = val;
+  qa.step = "amount";
+  render();
+  qaFocus();
+}
+function qaAmountNext(){
+  const el = document.getElementById("qa-input");
+  const val = parseFloat(el.value);
+  if(isNaN(val) || val <= 0) return;
+  qa.amount = val;
+  qa.step = "account";
+  render();
+}
+function qaSelectAccount(a){
+  qa.account = a;
+  qa.step = "confirm";
+  render();
+}
+function qaConfirmAdd(){
+  if(qa.type === "ingreso"){
+    state.incomes.push({ id: uid(), name: qa.name, amount: qa.amount, multiplier: 1, paid:false, account: qa.account });
+  } else if(qa.type === "gasto"){
+    const arr = qa.subtype === "fijo" ? state.fixedExp : state.varExp;
+    arr.push({ id: uid(), name: qa.name, amount: qa.amount, multiplier: 1, paid:false, account: qa.account });
+  } else if(qa.type === "inversion"){
+    state.investments.push({ id: uid(), name: qa.name, invested: qa.amount, current: qa.amount, account: qa.account });
+  } else if(qa.type === "ahorro"){
+    const arr = qa.subtype === "total" ? state.savingsTotal : state.savingsMonthly;
+    arr.push({ id: uid(), name: qa.name, amount: qa.amount, multiplier: 1, paid:false, account: qa.account });
+  }
+  save();
+  qa.open = false;
+  render();
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state.incomes = parsed.incomes || [];
+      state.fixedExp = parsed.fixedExp || [];
+      state.varExp = parsed.varExp || [];
+      state.investments = parsed.investments || [];
+      state.savingsTotal = parsed.savingsTotal || [];
+      state.savingsMonthly = parsed.savingsMonthly || [];
+    }
+  }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function fmt(n){ return "$" + new Intl.NumberFormat("es-UY", {maximumFractionDigits:2}).format(Math.abs(n)); }
+function effective(r){ return r.amount * (r.multiplier && r.multiplier > 0 ? r.multiplier : 1); }
+
+function addEntry(section){
+  const cfg = SECTIONS[section];
+  const nameEl = document.getElementById(`add-name-${section}`);
+  const amtEl = document.getElementById(`add-amt-${section}`);
+  const multEl = cfg.showMultiplier ? document.getElementById(`add-mult-${section}`) : null;
+  const name = nameEl.value.trim();
+  const val = parseFloat(amtEl.value);
+  if(!name || isNaN(val) || val <= 0) return;
+  const mult = multEl ? parseFloat(multEl.value) : NaN;
+  state[section].push({ id: uid(), name, amount: val, multiplier: (!isNaN(mult) && mult > 0) ? mult : 1, paid:false });
+  save(); render();
+}
+function removeEntry(section, id){
+  state[section] = state[section].filter(r => r.id !== id);
+  save(); render();
+}
+function togglePaid(section, id){
+  state[section] = state[section].map(r => r.id === id ? {...r, paid: !r.paid} : r);
+  save(); render();
+}
+function startEdit(section, id){ editing = {section, id}; render(); }
+
+function addInvestment(){
+  const nameEl = document.getElementById("add-name-investments");
+  const investedEl = document.getElementById("add-invested-investments");
+  const currentEl = document.getElementById("add-current-investments");
+  const name = nameEl.value.trim();
+  const invested = parseFloat(investedEl.value);
+  const current = parseFloat(currentEl.value);
+  if(!name || isNaN(invested) || invested <= 0 || isNaN(current) || current < 0) return;
+  state.investments.push({ id: uid(), name, invested, current });
+  save(); render();
+}
+function removeInvestment(id){
+  state.investments = state.investments.filter(r => r.id !== id);
+  save(); render();
+}
+function startEditInvestment(id){ investEditing = id; render(); }
+function cancelEditInvestment(){ investEditing = null; render(); }
+function saveEditInvestment(){
+  const name = document.getElementById("edit-inv-name").value.trim();
+  const invested = parseFloat(document.getElementById("edit-inv-invested").value);
+  const current = parseFloat(document.getElementById("edit-inv-current").value);
+  if(!name || isNaN(invested) || invested <= 0 || isNaN(current) || current < 0) return;
+  state.investments = state.investments.map(r => r.id === investEditing ? { ...r, name, invested, current } : r);
+  investEditing = null; save(); render();
+}
+function investGain(r){ return r.current - r.invested; }
+function investPct(r){ return r.invested > 0 ? (investGain(r) / r.invested * 100) : 0; }
+function cancelEdit(){ editing = null; render(); }
+function saveEdit(){
+  const { section, id } = editing;
+  const cfg = SECTIONS[section];
+  const name = document.getElementById("edit-name").value.trim();
+  const val = parseFloat(document.getElementById("edit-amt").value);
+  const multEl = cfg.showMultiplier ? document.getElementById("edit-mult") : null;
+  if(!name || isNaN(val) || val <= 0) return;
+  const mult = multEl ? parseFloat(multEl.value) : NaN;
+  state[section] = state[section].map(r => r.id === id ? { ...r, name, amount: val, multiplier: (!isNaN(mult) && mult > 0) ? mult : 1 } : r);
+  editing = null; save(); render();
+}
+
+function rowHtml(section, r, cfg){
+  if(editing && editing.section === section && editing.id === r.id){
+    return `
+    <div class="edit-row">
+      <div class="field grow"><label>Nombre</label><input id="edit-name" value="${escapeHtml(r.name)}" /></div>
+      <div class="field amt"><label>Monto</label><input id="edit-amt" class="mono" type="number" step="0.01" value="${r.amount}" /></div>
+      ${cfg.showMultiplier ? `<div class="field mult"><label>×</label><input id="edit-mult" class="mono" type="number" step="1" min="0" value="${r.multiplier || 1}" /></div>` : ""}
+      <div class="edit-actions">
+        <button class="round-btn" style="background:var(--green)" onclick="saveEdit()">${ICONS.check}</button>
+        <button class="round-btn" style="background:var(--ink-soft)" onclick="cancelEdit()">${ICONS.x}</button>
+      </div>
+    </div>`;
+  }
+  const paidCls = r.paid ? "paid" : "";
+  const draggable = section === "savingsMonthly";
+  return `
+  <div class="row${draggable ? " draggable-row" : ""}" ${draggable ? `data-drag-id="${r.id}"` : ""}>
+    ${draggable ? `<span class="drag-handle" data-drag-id="${r.id}">${ICONS.grip}</span>` : ""}
+    ${cfg.showPaid ? `<button class="paid-toggle" style="color:${r.paid ? cfg.accentRaw : "var(--ink-soft)"}" onclick="togglePaid('${section}','${r.id}')">${r.paid ? ICONS.checkCircle : ICONS.circle}</button>` : ""}
+    <span class="name ${paidCls}" ${cfg.showPaid ? `onclick="togglePaid('${section}','${r.id}')" style="cursor:pointer"` : ""}>${escapeHtml(r.name)}${r.account ? ` <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-soft);">· ${r.account}</span>` : ""}</span>
+    <span class="fill"></span>
+    <span class="amt ${paidCls}">${fmt(r.amount)}${(cfg.showMultiplier && r.multiplier > 1) ? ` <span style="color:${r.paid ? "var(--ink-soft)" : cfg.accentRaw}">×${r.multiplier}</span>` : ""}</span>
+    ${(cfg.showMultiplier && r.multiplier > 1) ? `<span class="mult">= ${fmt(effective(r))}</span>` : ""}
+    <button class="icon-btn" onclick="startEdit('${section}','${r.id}')">${ICONS.pencil}</button>
+    <button class="icon-btn danger" onclick="removeEntry('${section}','${r.id}')">${ICONS.trash}</button>
+  </div>`;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function investmentRowHtml(r){
+  if(investEditing === r.id){
+    return `
+    <div class="edit-row">
+      <div class="field grow"><label>Nombre</label><input id="edit-inv-name" value="${escapeHtml(r.name)}" /></div>
+      <div class="field amt"><label>Invertido</label><input id="edit-inv-invested" class="mono" type="number" step="0.01" value="${r.invested}" /></div>
+      <div class="field amt"><label>Actual</label><input id="edit-inv-current" class="mono" type="number" step="0.01" value="${r.current}" /></div>
+      <div class="edit-actions">
+        <button class="round-btn" style="background:var(--green)" onclick="saveEditInvestment()">${ICONS.check}</button>
+        <button class="round-btn" style="background:var(--ink-soft)" onclick="cancelEditInvestment()">${ICONS.x}</button>
+      </div>
+    </div>`;
+  }
+  const gain = investGain(r);
+  const pct = investPct(r);
+  const gainColor = gain >= 0 ? "var(--green)" : "var(--red)";
+  const sign = gain >= 0 ? "+" : "−";
+  return `
+  <div class="row">
+    <span class="name">${escapeHtml(r.name)}${r.account ? ` <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-soft);">· ${r.account}</span>` : ""}</span>
+    <span class="fill"></span>
+    <span class="amt">${fmt(r.current)}</span>
+    <span class="mult" style="color:${gainColor}">${sign}${fmt(Math.abs(gain))} (${sign}${Math.abs(pct).toFixed(1)}%)</span>
+    <button class="icon-btn" onclick="startEditInvestment('${r.id}')">${ICONS.pencil}</button>
+    <button class="icon-btn danger" onclick="removeInvestment('${r.id}')">${ICONS.trash}</button>
+  </div>`;
+}
+
+function investmentsHtml(){
+  const rows = state.investments;
+  const totalInvested = rows.reduce((s,r) => s + r.invested, 0);
+  const totalCurrent = rows.reduce((s,r) => s + r.current, 0);
+  const totalGain = totalCurrent - totalInvested;
+  const totalPct = totalInvested > 0 ? (totalGain / totalInvested * 100) : 0;
+  const gainColor = totalGain >= 0 ? "var(--green)" : "var(--red)";
+  const sign = totalGain >= 0 ? "+" : "−";
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div class="badge" style="background:${INV_CFG.accentRaw}1a; color:${INV_CFG.accentRaw}">${INV_CFG.icon}</div>
+      <div>
+        <p class="eyebrow" style="color:var(--ink-soft); font-weight:400;">${INV_CFG.eyebrow}</p>
+        <h3>${INV_CFG.label}</h3>
+      </div>
+    </div>
+    <div class="rows">
+      ${rows.length === 0 ? `<p class="empty">Sin inversiones todavía.</p>` : rows.map(r => investmentRowHtml(r)).join("")}
+    </div>
+    <div class="add-form">
+      <input class="name" id="add-name-investments" placeholder="Ej: VOO, IBKR..." onkeydown="if(event.key==='Enter')addInvestment()" />
+      <input class="amt" id="add-invested-investments" placeholder="Inv." type="number" step="0.01" onkeydown="if(event.key==='Enter')addInvestment()" />
+      <input class="amt" id="add-current-investments" placeholder="Valor" type="number" step="0.01" onkeydown="if(event.key==='Enter')addInvestment()" />
+      <button style="background:${INV_CFG.accentRaw}" onclick="addInvestment()">${ICONS.plus}</button>
+    </div>
+    <div class="subtotal">
+      <span class="lbl">Invertido ${fmt(totalInvested)} · Actual ${fmt(totalCurrent)}</span>
+      <span class="val" style="color:${gainColor}">${sign}${fmt(Math.abs(totalGain))} (${sign}${Math.abs(totalPct).toFixed(1)}%)</span>
+    </div>
+  </div>`;
+}
+
+function sectionHtml(section){
+  const cfg = SECTIONS[section];
+  const rows = state[section];
+  const total = rows.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const pendingCount = rows.filter(r => r.paid).length;
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div class="badge" style="background:${cfg.accentRaw}1a; color:${cfg.accentRaw}">${cfg.icon}</div>
+      <div>
+        <p class="eyebrow" style="color:var(--ink-soft); font-weight:400;">${cfg.eyebrow}</p>
+        <h3>${cfg.label}</h3>
+      </div>
+    </div>
+    <div class="rows">
+      ${rows.length === 0 ? `<p class="empty">Sin registros todavía.</p>` : rows.map(r => rowHtml(section, r, cfg)).join("")}
+    </div>
+    <div class="add-form">
+      <input class="name" id="add-name-${section}" placeholder="${cfg.placeholder}" onkeydown="if(event.key==='Enter')addEntry('${section}')" />
+      <input class="amt" id="add-amt-${section}" placeholder="0" type="number" step="0.01" onkeydown="if(event.key==='Enter')addEntry('${section}')" />
+      ${cfg.showMultiplier ? `<span class="x">×</span><input class="mult" id="add-mult-${section}" placeholder="1" type="number" step="1" min="0" onkeydown="if(event.key==='Enter')addEntry('${section}')" />` : ""}
+      <button style="background:${cfg.accentRaw}" onclick="addEntry('${section}')">${ICONS.plus}</button>
+    </div>
+    <div class="subtotal">
+      <span class="lbl">${pendingCount > 0 ? `Pendiente (${pendingCount} pagado${pendingCount>1?"s":""})` : "Subtotal"}</span>
+      <span class="val" style="color:${cfg.accentRaw}">${fmt(total)}</span>
+    </div>
+  </div>`;
+}
+
+function computeTotals(){
+  const totalIncome = state.incomes.reduce((s,r) => s + r.amount, 0);
+  const totalFixed = state.fixedExp.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const totalVar = state.varExp.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const totalSavingsMonthly = state.savingsMonthly.reduce((s,r) => s + (r.paid ? 0 : effective(r)), 0);
+  const totalSavingsTotal = state.savingsTotal.reduce((s,r) => s + r.amount, 0);
+  const disponible = totalIncome - totalFixed - totalVar - totalSavingsMonthly;
+  const totalInvested = state.investments.reduce((s,r) => s + r.invested, 0);
+  const totalInvCurrent = state.investments.reduce((s,r) => s + r.current, 0);
+  const totalInvGain = totalInvCurrent - totalInvested;
+  const totalInvPct = totalInvested > 0 ? (totalInvGain / totalInvested * 100) : 0;
+  return { totalIncome, totalFixed, totalVar, totalSavingsMonthly, totalSavingsTotal, disponible, totalInvested, totalInvCurrent, totalInvGain, totalInvPct };
+}
+
+function homeHtml(){
+  const { totalIncome, totalFixed, totalVar, totalSavingsMonthly, totalSavingsTotal, disponible, totalInvCurrent, totalInvGain, totalInvPct } = computeTotals();
+  const today = new Intl.DateTimeFormat("es-UY", {day:"2-digit", month:"short", year:"numeric"}).format(new Date());
+  const neg = disponible < 0;
+
+  const menuItems = [
+    { view:"incomes", label:"Entradas", sub: fmt(totalIncome), cfg: SECTIONS.incomes },
+    { view:"fixedExp", label:"Gastos Fijos", sub: fmt(totalFixed), cfg: SECTIONS.fixedExp },
+    { view:"varExp", label:"Gastos Variables", sub: fmt(totalVar), cfg: SECTIONS.varExp },
+    { view:"savings", label:"Ahorro", sub: fmt(totalSavingsTotal), cfg: SAVINGS_CFG },
+    { view:"investments", label:"Inversión", sub: fmt(totalInvCurrent), cfg: INV_CFG },
+  ];
+
+  return `
+    <div class="header">
+      <div>
+        <p class="eyebrow">Libro de cuentas personal</p>
+        <h1>Mi disponible</h1>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="stamp ${neg ? "neg" : ""}">
+        <span class="label">Disponible</span>
+        <span class="amount">${neg ? "−" : ""}${fmt(disponible)}</span>
+        <span class="date">${today}</span>
+      </div>
+      <p class="hero-note">
+        ${fmt(totalIncome)} en cuentas − ${fmt(totalFixed)} en gastos fijos − ${fmt(totalVar)} en gastos variables − ${fmt(totalSavingsMonthly)} en ahorro mensual
+      </p>
+    </div>
+
+    <div class="menu">
+      ${menuItems.map(m => `
+        <button class="menu-btn" onclick="goTo('${m.view}')">
+          <div class="badge" style="background:${m.cfg.accentRaw}1a; color:${m.cfg.accentRaw}">${m.cfg.icon}</div>
+          <div>
+            <div class="menu-label">${m.label}</div>
+            <div class="menu-sub">${m.sub}</div>
+          </div>
+        </button>
+      `).join("")}
+    </div>
+
+    ${totalInvGain !== 0 || state.investments.length > 0 || state.savingsTotal.length > 0 ? `
+    <div class="summary">
+      <div class="item"><p class="lbl">Disponible</p><p class="val" style="color:${disponible>=0?"var(--green)":"var(--red)"}">${disponible<0?"−":""}${fmt(disponible)}</p></div>
+      ${state.savingsTotal.length > 0 ? `<div class="item"><p class="lbl">Ahorro acumulado</p><p class="val" style="color:${SAVINGS_CFG.accentRaw}">${fmt(totalSavingsTotal)}</p></div>` : ""}
+      ${(totalInvGain !== 0 || state.investments.length > 0) ? `
+      <div class="item"><p class="lbl">Valor de cartera</p><p class="val" style="color:${INV_CFG.accentRaw}">${fmt(totalInvCurrent)}</p></div>
+      <div class="item"><p class="lbl">Ganancia inversiones</p><p class="val" style="color:${totalInvGain>=0?"var(--green)":"var(--red)"}">${totalInvGain<0?"−":"+"}${fmt(Math.abs(totalInvGain))} (${totalInvGain<0?"−":"+"}${Math.abs(totalInvPct).toFixed(1)}%)</p></div>` : ""}
+    </div>` : ""}
+
+    <p class="install-hint">Tocá el botón compartir de Safari y elegí "Agregar a pantalla de inicio" para tenerla como app.</p>
+  `;
+}
+
+function sectionScreenHtml(section){
+  const cfg = SECTIONS[section];
+  return `
+    <div class="back-row">
+      <button class="back-btn" onclick="goHome()">${ICONS.chevronLeft} Inicio</button>
+    </div>
+    <div class="header">
+      <div>
+        <p class="eyebrow">${cfg.eyebrow}</p>
+        <h1>${cfg.label}</h1>
+      </div>
+    </div>
+    <div class="ledgers">
+      ${sectionHtml(section)}
+    </div>
+  `;
+}
+
+function savingsScreenHtml(){
+  return `
+    <div class="back-row">
+      <button class="back-btn" onclick="goHome()">${ICONS.chevronLeft} Inicio</button>
+    </div>
+    <div class="header">
+      <div>
+        <p class="eyebrow">${SAVINGS_CFG.eyebrow}</p>
+        <h1>${SAVINGS_CFG.label}</h1>
+      </div>
+    </div>
+    <div class="ledgers">
+      <div id="drop-zone-total" class="drop-zone">${sectionHtml('savingsTotal')}</div>
+      ${sectionHtml('savingsMonthly')}
+      <p class="drop-hint">Mantené presionado ⠿⠿ y arrastrá un renglón de ahorro mensual hasta "Ahorro total" para sumarlo.</p>
+    </div>
+  `;
+}
+
+function investmentsScreenHtml(){
+  return `
+    <div class="back-row">
+      <button class="back-btn" onclick="goHome()">${ICONS.chevronLeft} Inicio</button>
+    </div>
+    <div class="header">
+      <div>
+        <p class="eyebrow">${INV_CFG.eyebrow}</p>
+        <h1>${INV_CFG.label}</h1>
+      </div>
+    </div>
+    <div class="ledgers">
+      ${investmentsHtml()}
+    </div>
+  `;
+}
+
+const TYPE_CFG = {
+  ingreso: { label:"Ingreso", accentRaw:"#3F6B4F", icon: ICONS.landmark },
+  gasto: { label:"Gasto", accentRaw:"#9B3B2E", icon: ICONS.scroll },
+  inversion: { label:"Inversión", accentRaw:"#3B5B8C", icon: ICONS.trendUp },
+  ahorro: { label:"Ahorro", accentRaw:"#2E7D6B", icon: ICONS.piggyBank },
+};
+
+function qaTitle(){
+  switch(qa.step){
+    case "type": return "¿Qué vas a agregar?";
+    case "subtype": return qa.type === "ahorro" ? "¿Total o mensual?" : "¿Fijo o variable?";
+    case "name": return "Nombre o descripción";
+    case "amount": return "¿Cuánto?";
+    case "account": return "¿Desde qué cuenta?";
+    case "confirm": return "Confirmar";
+    default: return "Agregar";
+  }
+}
+
+function qaBodyHtml(){
+  if(qa.step === "type"){
+    return `
+    <div class="qa-choice-grid">
+      ${Object.entries(TYPE_CFG).map(([key, cfg]) => `
+        <button class="qa-choice" onclick="qaSelectType('${key}')">
+          <div class="badge" style="background:${cfg.accentRaw}1a; color:${cfg.accentRaw}">${cfg.icon}</div>
+          ${cfg.label}
+        </button>
+      `).join("")}
+    </div>`;
+  }
+  if(qa.step === "subtype"){
+    if(qa.type === "ahorro"){
+      return `
+      <div class="qa-choice-grid">
+        <button class="qa-choice" onclick="qaSelectSubtype('total')">
+          <div class="badge" style="background:${SECTIONS.savingsTotal.accentRaw}1a; color:${SECTIONS.savingsTotal.accentRaw}">${SECTIONS.savingsTotal.icon}</div>
+          Total
+        </button>
+        <button class="qa-choice" onclick="qaSelectSubtype('mensual')">
+          <div class="badge" style="background:${SECTIONS.savingsMonthly.accentRaw}1a; color:${SECTIONS.savingsMonthly.accentRaw}">${SECTIONS.savingsMonthly.icon}</div>
+          Mensual
+        </button>
+      </div>`;
+    }
+    return `
+    <div class="qa-choice-grid">
+      <button class="qa-choice" onclick="qaSelectSubtype('fijo')">
+        <div class="badge" style="background:${SECTIONS.fixedExp.accentRaw}1a; color:${SECTIONS.fixedExp.accentRaw}">${SECTIONS.fixedExp.icon}</div>
+        Fijo
+      </button>
+      <button class="qa-choice" onclick="qaSelectSubtype('variable')">
+        <div class="badge" style="background:${SECTIONS.varExp.accentRaw}1a; color:${SECTIONS.varExp.accentRaw}">${SECTIONS.varExp.icon}</div>
+        Variable
+      </button>
+    </div>`;
+  }
+  if(qa.step === "name"){
+    return `
+    <div class="qa-field">
+      <label>Nombre o descripción</label>
+      <input id="qa-input" placeholder="Ej: Sueldo, alquiler, VOO..." value="${escapeHtml(qa.name)}" onkeydown="if(event.key==='Enter')qaNameNext()" />
+    </div>
+    <button class="qa-primary" onclick="qaNameNext()">Siguiente</button>`;
+  }
+  if(qa.step === "amount"){
+    return `
+    <div class="qa-field">
+      <label>Monto en $</label>
+      <input id="qa-input" class="mono" type="number" step="0.01" placeholder="0" value="${qa.amount || ""}" onkeydown="if(event.key==='Enter')qaAmountNext()" />
+    </div>
+    <button class="qa-primary" onclick="qaAmountNext()">Siguiente</button>`;
+  }
+  if(qa.step === "account"){
+    return `
+    <div class="qa-choice-grid">
+      ${ACCOUNTS.map(a => `<button class="qa-choice" onclick="qaSelectAccount('${a}')" style="padding:14px 10px;">${a}</button>`).join("")}
+    </div>`;
+  }
+  if(qa.step === "confirm"){
+    const cfg = TYPE_CFG[qa.type];
+    const typeLabel = qa.type === "gasto" ? `Gasto ${qa.subtype === "fijo" ? "fijo" : "variable"}` : qa.type === "ahorro" ? `Ahorro ${qa.subtype === "total" ? "total" : "mensual"}` : cfg.label;
+    return `
+    <div class="qa-summary">
+      <div class="row2"><span class="k">Tipo</span><span class="v">${typeLabel}</span></div>
+      <div class="row2"><span class="k">Nombre</span><span class="v">${escapeHtml(qa.name)}</span></div>
+      <div class="row2"><span class="k">Monto</span><span class="v">${fmt(qa.amount)}</span></div>
+      <div class="row2"><span class="k">Cuenta</span><span class="v">${qa.account}</span></div>
+    </div>
+    <button class="qa-primary" style="background:${cfg.accentRaw}" onclick="qaConfirmAdd()">Agregar</button>`;
+  }
+  return "";
+}
+
+function qaSheetHtml(){
+  if(!qa.open) return "";
+  const steps = qaSteps();
+  const idx = steps.indexOf(qa.step);
+  return `
+  <div class="qa-overlay" onclick="if(event.target===this)closeQuickAdd()">
+    <div class="qa-sheet">
+      <div class="qa-grabber"></div>
+      <div class="qa-head">
+        <div class="qa-head-left">
+          ${idx > 0 ? `<button class="qa-back" onclick="qaBack()">${ICONS.chevronLeft}</button>` : ""}
+          <p class="qa-title">${qaTitle()}</p>
+        </div>
+        <button class="qa-close" onclick="closeQuickAdd()">${ICONS.x}</button>
+      </div>
+      <div class="qa-dots">
+        ${steps.map((s,i) => `<span class="qa-dot ${i===idx ? "active" : ""}"></span>`).join("")}
+      </div>
+      ${qaBodyHtml()}
+    </div>
+  </div>`;
+}
+
+function render(){
+  let html;
+  if(view === "home") html = homeHtml();
+  else if(view === "investments") html = investmentsScreenHtml();
+  else if(view === "savings") html = savingsScreenHtml();
+  else html = sectionScreenHtml(view);
+
+  html += `<button class="fab" onclick="openQuickAdd()" aria-label="Agregar">${ICONS.plusBig}</button>`;
+  html += qaSheetHtml();
+
+  document.getElementById("app").innerHTML = html;
+  if(qa.open && (qa.step === "name" || qa.step === "amount")) qaFocus();
+}
+
+/* ---------- drag & drop: ahorro mensual -> ahorro total ---------- */
+let dragState = null; // { id, rowEl, ghostEl, startX, startY }
+
+function onAppPointerDown(e){
+  const handle = e.target.closest(".drag-handle");
+  if(!handle) return;
+  const id = handle.dataset.dragId;
+  const row = state.savingsMonthly.find(r => r.id === id);
+  if(!row) return;
+  const rowEl = handle.closest(".row");
+  e.preventDefault();
+
+  const ghost = document.createElement("div");
+  ghost.className = "drag-ghost";
+  ghost.innerHTML = `${ICONS.piggyBank} <span>${escapeHtml(row.name)}</span><span class="amt">${fmt(effective(row))}</span>`;
+  document.body.appendChild(ghost);
+  positionGhost(ghost, e.clientX, e.clientY);
+
+  rowEl.classList.add("is-dragging");
+
+  dragState = { id, rowEl, ghostEl: ghost };
+
+  document.addEventListener("pointermove", onDragPointerMove);
+  document.addEventListener("pointerup", onDragPointerUp);
+  document.addEventListener("pointercancel", onDragPointerUp);
+}
+
+function positionGhost(ghost, x, y){
+  ghost.style.transform = `translate(${x}px, ${y}px) translate(-50%,-50%) scale(1.03)`;
+}
+
+function onDragPointerMove(e){
+  if(!dragState) return;
+  e.preventDefault();
+  positionGhost(dragState.ghostEl, e.clientX, e.clientY);
+
+  const zone = document.getElementById("drop-zone-total");
+  if(zone){
+    const rect = zone.getBoundingClientRect();
+    const over = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+    zone.classList.toggle("drop-hover", over);
+  }
+}
+
+function onDragPointerUp(e){
+  if(!dragState) return;
+  const { id, rowEl, ghostEl } = dragState;
+  const zone = document.getElementById("drop-zone-total");
+  const droppedOnTotal = zone && zone.classList.contains("drop-hover");
+
+  document.removeEventListener("pointermove", onDragPointerMove);
+  document.removeEventListener("pointerup", onDragPointerUp);
+  document.removeEventListener("pointercancel", onDragPointerUp);
+  ghostEl.remove();
+  if(zone) zone.classList.remove("drop-hover");
+  rowEl && rowEl.classList.remove("is-dragging");
+  dragState = null;
+
+  if(droppedOnTotal){
+    moveSavingToTotal(id);
+  }
+}
+
+function moveSavingToTotal(id){
+  const row = state.savingsMonthly.find(r => r.id === id);
+  if(!row) return;
+  const amount = effective(row);
+  state.savingsMonthly = state.savingsMonthly.filter(r => r.id !== id);
+  state.savingsTotal.push({ id: uid(), name: row.name, amount });
+  save();
+  render();
+}
+
+document.getElementById("app").addEventListener("pointerdown", onAppPointerDown);
+
+load();
+render();
+if(window.location.hash === "#add"){
+  history.replaceState(null, "", window.location.pathname);
+  openQuickAdd();
+}
+</script>
+</body>
+</html>
